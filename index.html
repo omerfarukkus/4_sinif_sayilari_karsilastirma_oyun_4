@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4. Sınıf Sayıları Karşılaştırma - Kutuyu Aç</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #e0f2fe; /* Açık mavi arka plan */
+            background-image: 
+                radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.4) 2%, transparent 0%), 
+                radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.4) 2%, transparent 0%);
+            background-size: 100px 100px;
+        }
+        #app-container {
+            background-color: #ffffff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 800px;
+        }
+        .box {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        .box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .box.opened {
+            opacity: 0.5;
+            transform: scale(0.95);
+            cursor: not-allowed;
+            background-color: #9ca3af !important;
+        }
+        #quiz-modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .option-btn {
+            color: white;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 3px solid transparent;
+        }
+        .option-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .option-btn.correct {
+            background-color: #22c55e !important;
+            border-color: #ffffff !important;
+        }
+        .option-btn.incorrect {
+            background-color: #ef4444 !important;
+            border-color: #ffffff !important;
+        }
+        #feedback-modal {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .star {
+            transition: color 0.5s ease;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full mx-auto rounded-2xl p-6 sm:p-8 text-gray-800">
+
+        <!-- Başlık ve Bilgiler -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-0">Kutuyu Aç - Sayı Karşılaştırma</h1>
+            <div class="flex items-center space-x-6">
+                <div id="lives-container" class="flex space-x-1"></div>
+                <div id="score-container" class="font-bold text-lg text-gray-600">Puan: 0</div>
+            </div>
+        </div>
+        
+        <!-- Kutular -->
+        <div id="box-grid-container" class="grid grid-cols-3 sm:grid-cols-4 gap-4">
+            <!-- Kutular JS ile oluşturulacak -->
+        </div>
+
+        <!-- Sonuç Bölümü -->
+        <div id="results-container" class="hidden text-center py-8">
+            <h2 class="text-4xl font-bold mb-4 text-blue-600">Oyun Bitti!</h2>
+            <div id="stars-container" class="flex justify-center text-6xl mb-6"></div>
+            <p id="score" class="text-2xl mb-2"></p>
+            <p id="result-message" class="text-lg text-gray-600 mb-8"></p>
+            <button id="restart-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-lg transition-transform transform hover:scale-105">
+                Yeniden Oyna
+            </button>
+        </div>
+    </div>
+
+    <!-- Soru Modalı -->
+    <div id="quiz-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 opacity-0 pointer-events-none transform scale-95">
+        <div id="quiz-modal-content" class="bg-white rounded-2xl p-8 w-full max-w-2xl">
+             <div id="question" class="p-4 rounded-lg mb-6 h-28 flex items-center justify-center text-center text-xl sm:text-2xl font-semibold bg-gray-50 border">
+                <!-- Soru metni buraya gelecek -->
+            </div>
+            <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Seçenekler buraya gelecek -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Doğru/Yanlış Bildirimi -->
+    <div id="feedback-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 pointer-events-none transform scale-90">
+        <div id="feedback-content" class="text-white text-4xl sm:text-6xl font-bold p-8 rounded-2xl"></div>
+    </div>
+
+    <script>
+        const questions = [
+            { question: "7.123, 7.213, 7.132, 7.231 sayılarından hangisi en büyüktür?", options: ["7.123", "7.213", "7.132", "7.231"], answer: "7.231" },
+            { question: "4.908 ... 4.899 ifadesinde noktalı yere hangi sembol gelmelidir?", options: [">", "<", "="], answer: ">" },
+            { question: "Rakamları birbirinden farklı dört basamaklı en BÜYÜK çift sayı hangisidir?", options: ["9.876", "9.998", "9.875", "1.024"], answer: "9.876" },
+            { question: "Aşağıdaki karşılaştırmalardan hangisi yanlıştır?", options: ["3.110 > 3.101", "8.080 < 8.800", "2.345 > 2.435"], answer: "2.345 > 2.435" },
+            { question: "Hangi sayı 5.600'den büyük, 5.700'den küçüktür?", options: ["5.590", "5.710", "5.680", "5.701"], answer: "5.680" },
+            { question: "'Yedi bin on yedi' ile 'Yedi bin yetmiş bir' karşılaştırıldığında hangisi doğrudur?", options: ["7.017 > 7.071", "7.017 = 7.071", "7.017 < 7.071"], answer: "7.017 < 7.071" },
+            { question: "3.456, 3.654, 3.465, 3.546 sayılarının küçükten büyüğe sıralanışı hangisidir?", options: ["3.456 < 3.465 < 3.546 < 3.654", "3.654 > 3.546 > 3.456 > 3.465", "3.456 < 3.546 < 3.465 < 3.654"], answer: "3.456 < 3.465 < 3.546 < 3.654" },
+            { question: "9.B54 < 9.454 karşılaştırmasında B yerine yazılabilecek en büyük rakam kaçtır?", options: ["2", "3", "4", "5"], answer: "3" },
+            { question: "Hangi seçenekteki sayı diğerlerinden daha büyüktür?", options: ["6.670", "6.760", "6.076", "6.706"], answer: "6.760" },
+            { question: "5.050, 5.500, 5.005, 5.505 sayılarının büyükten küçüğe sıralanışı hangisidir?", options: ["5.505 > 5.500 > 5.050 > 5.005", "5.005 < 5.050 < 5.500 < 5.505", "5.500 > 5.505 > 5.050 > 5.005"], answer: "5.505 > 5.500 > 5.050 > 5.005" },
+            { question: "8.000'den küçük en büyük doğal sayı hangisidir?", options: ["8.001", "7.999", "7.990", "7.000"], answer: "7.999" },
+            { question: "2.022 ... 2.202 ifadesinde noktalı yere hangi sembol gelmelidir?", options: ["<", ">", "="], answer: "<" }
+        ];
+
+        let score = 0;
+        let lives = 4;
+        let openedBoxes = [];
+        let currentQuestionIndex = -1;
+
+        const appContainer = document.getElementById('app-container');
+        const boxGridContainer = document.getElementById('box-grid-container');
+        const resultsContainer = document.getElementById('results-container');
+        const quizModal = document.getElementById('quiz-modal');
+        const questionEl = document.getElementById('question');
+        const optionsContainer = document.getElementById('options-container');
+        const livesContainer = document.getElementById('lives-container');
+        const scoreEl = document.getElementById('score');
+        const scoreContainer = document.getElementById('score-container');
+        const restartBtn = document.getElementById('restart-btn');
+        const starsContainer = document.getElementById('stars-container');
+        const resultMessageEl = document.getElementById('result-message');
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackContent = document.getElementById('feedback-content');
+        
+        const boxColors = ['bg-teal-400', 'bg-orange-400', 'bg-purple-400', 'bg-yellow-400', 'bg-lime-500', 'bg-red-400', 'bg-cyan-400', 'bg-blue-400', 'bg-pink-400', 'bg-indigo-400', 'bg-emerald-400', 'bg-rose-400'];
+        const optionBgColors = ['bg-sky-500', 'bg-amber-500', 'bg-teal-500', 'bg-indigo-500'];
+
+        function startGame() {
+            score = 0;
+            lives = 4;
+            openedBoxes = [];
+            scoreContainer.textContent = `Puan: ${score}`;
+            resultsContainer.classList.add('hidden');
+            boxGridContainer.classList.remove('hidden');
+            updateLivesDisplay();
+            createBoxGrid();
+        }
+
+        function createBoxGrid() {
+            boxGridContainer.innerHTML = '';
+            for(let i = 0; i < 12; i++) {
+                const box = document.createElement('div');
+                box.className = `box w-full aspect-square rounded-xl flex items-center justify-center text-4xl font-bold text-white ${boxColors[i]}`;
+                box.textContent = i + 1;
+                box.dataset.index = i;
+                box.addEventListener('click', () => openBox(i, box));
+                boxGridContainer.appendChild(box);
+            }
+        }
+        
+        function openBox(index, boxElement) {
+            if (openedBoxes.includes(index) || lives === 0) return;
+            
+            openedBoxes.push(index);
+            currentQuestionIndex = index;
+            boxElement.classList.add('opened');
+            
+            loadQuestionIntoModal();
+            showQuizModal();
+        }
+
+        function loadQuestionIntoModal() {
+            const currentQuestion = questions[currentQuestionIndex];
+            questionEl.textContent = currentQuestion.question;
+            optionsContainer.innerHTML = '';
+            
+            const shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                const bgColorClass = optionBgColors[index % optionBgColors.length];
+                button.className = `option-btn w-full p-4 rounded-lg text-lg font-semibold ${bgColorClass}`;
+                button.onclick = () => selectAnswer(option, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedOption, button) {
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+            const correct = selectedOption === questions[currentQuestionIndex].answer;
+            
+            if (correct) {
+                score += 10;
+                scoreContainer.textContent = `Puan: ${score}`;
+                button.classList.add('correct');
+                showFeedback('Doğru!', 'bg-green-500');
+            } else {
+                lives--;
+                button.classList.add('incorrect');
+                updateLivesDisplay();
+                showFeedback('Yanlış!', 'bg-red-500');
+                const correctOption = questions[currentQuestionIndex].answer;
+                Array.from(optionsContainer.children).forEach(btn => {
+                    if (btn.textContent === correctOption) btn.classList.add('correct');
+                });
+            }
+
+            setTimeout(() => {
+                hideFeedback();
+                hideQuizModal();
+                if (lives === 0 || openedBoxes.length === questions.length) {
+                    showResults();
+                }
+            }, 1800);
+        }
+
+        function updateLivesDisplay() {
+            livesContainer.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const heart = document.createElement('span');
+                heart.innerHTML = i < lives 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-red-500"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-gray-300"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>`;
+                livesContainer.appendChild(heart);
+            }
+        }
+        
+        function showQuizModal() {
+            quizModal.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+            quizModal.classList.add('opacity-100', 'scale-100');
+        }
+        function hideQuizModal() {
+            quizModal.classList.add('opacity-0', 'scale-95');
+            quizModal.classList.remove('opacity-100', 'scale-100');
+            setTimeout(() => {
+                 quizModal.classList.add('pointer-events-none');
+            }, 300);
+        }
+        
+        function showFeedback(message, bgColor) {
+            feedbackContent.textContent = message;
+            feedbackContent.className = `text-white text-4xl sm:text-6xl font-bold p-8 rounded-2xl ${bgColor}`;
+            feedbackModal.classList.remove('opacity-0', 'pointer-events-none', 'scale-90');
+            feedbackModal.classList.add('opacity-100', 'scale-100');
+        }
+
+        function hideFeedback() {
+            feedbackModal.classList.add('opacity-0', 'scale-90');
+            feedbackModal.classList.remove('opacity-100', 'scale-100');
+            setTimeout(() => {
+                 feedbackModal.classList.add('pointer-events-none');
+            }, 300);
+        }
+
+        function showResults() {
+            boxGridContainer.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            scoreEl.textContent = `Toplam Puanın: ${score}`;
+
+            let stars = 0;
+            const percentage = (score / (questions.length * 10)) * 100;
+            let message = "";
+
+            if (percentage >= 90) { stars = 3; message = "Harika iş! Sen bir matematik dehasısın!"; } 
+            else if (percentage >= 60) { stars = 2; message = "Çok iyi! Biraz daha pratikle mükemmel olabilirsin."; }
+            else if (percentage >= 30) { stars = 1; message = "İyi deneme! Konuyu tekrar etmende fayda var."; }
+            else { stars = 0; message = "Üzülme, tekrar deneyerek daha iyisini yapabilirsin!"; }
+            
+            resultMessageEl.textContent = message;
+            starsContainer.innerHTML = '';
+
+            for(let i = 0; i < 3; i++) {
+                const starEl = document.createElement('span');
+                starEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-16 h-16 star text-gray-300"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.007z" clip-rule="evenodd" /></svg>`;
+                starsContainer.appendChild(starEl);
+            }
+
+            setTimeout(() => {
+                const starElements = starsContainer.querySelectorAll('.star');
+                for(let i=0; i < stars; i++) {
+                    starElements[i].classList.add('text-yellow-400');
+                    starElements[i].classList.remove('text-gray-300');
+                }
+            }, 100);
+        }
+
+        restartBtn.addEventListener('click', startGame);
+
+        startGame();
+
+    </script>
+</body>
+</html>
+
+
